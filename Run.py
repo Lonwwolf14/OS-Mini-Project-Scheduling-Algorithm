@@ -1,7 +1,7 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog, messagebox
 import matplotlib.pyplot as plt
-import numpy as np
+import csv
 
 class Process:
     def __init__(self, pid, arrival_time, burst_time, priority):
@@ -140,19 +140,10 @@ def print_results(processes):
     plt.grid(True)
     plt.show()
 
-
-def update_priority_display():
-    if scheduling_algorithm.get() == "Priority":
-        priority_label.grid(row=3, column=2, padx=10, pady=5, sticky="w")
-        for entry in priority_entries:
-            entry.grid()
-    else:
-        priority_label.grid_remove()
-        for entry in priority_entries:
-            entry.grid_remove()
-
+# Function to export results
 def submit_processes():
     try:
+        global processes  # Add this line to access the processes variable globally
         processes = []
         for i in range(int(num_processes_entry.get())):
             pid = i + 1
@@ -193,6 +184,25 @@ def clear_inputs():
         entry.delete(0, tk.END)
     result_text.delete(1.0, tk.END)
 
+def export_results():
+    try:
+        if not processes:
+            raise ValueError("No processes to export results for.")
+        
+        filename = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv"), ("Text files", "*.txt")])
+        if not filename:
+            return  # User canceled the dialog
+
+        with open(filename, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["Process", "Arrival Time", "Burst Time", "Completion Time", "Turnaround Time", "Waiting Time"])
+            for process in processes:
+                writer.writerow([process.pid, process.arrival_time, process.burst_time, process.completion_time, process.turnaround_time, process.waiting_time])
+
+        messagebox.showinfo("Export Successful", "Results exported successfully.")
+    except Exception as e:
+        messagebox.showerror("Export Error", f"An error occurred while exporting results: {str(e)}")
+
 # GUI setup
 root = tk.Tk()
 root.title("Process Scheduling")
@@ -227,7 +237,6 @@ algorithm_label = ttk.Label(input_frame, text="Scheduling Algorithm:")
 algorithm_label.grid(row=2, column=0, padx=10, pady=5, sticky="e")
 scheduling_algorithm = ttk.Combobox(input_frame, values=["FCFS", "SJF", "SRTN", "Priority", "Round Robin"])
 scheduling_algorithm.grid(row=2, column=1, padx=10, pady=5, sticky="w")
-scheduling_algorithm.bind("<<ComboboxSelected>>", lambda e: update_priority_display())
 
 # Quantum (for Round Robin)
 quantum_label = ttk.Label(input_frame, text="Quantum (for Round Robin):")
@@ -277,6 +286,9 @@ submit_button.grid(row=1, column=3, padx=10, pady=5, sticky="e")
 clear_button = ttk.Button(input_frame, text="Clear", command=clear_inputs)
 clear_button.grid(row=2, column=3, padx=10, pady=5, sticky="e")
 
+# Add an "Export" button to the GUI
+export_button = ttk.Button(input_frame, text="Export", command=export_results)
+export_button.grid(row=3, column=3, padx=10, pady=5, sticky="e")
 # Result display
 result_text = tk.Text(output_frame, wrap=tk.WORD, height=20, width=70)
 result_text.pack(side=tk.BOTTOM, padx=10, pady=10, fill=tk.BOTH, expand=True)
@@ -287,3 +299,4 @@ scrollbar.pack(side=tk.RIGHT, fill="y")
 result_text.config(yscrollcommand=scrollbar.set)
 
 root.mainloop()
+
