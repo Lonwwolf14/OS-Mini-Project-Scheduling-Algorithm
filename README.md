@@ -32,7 +32,7 @@ Welcome to the OS Mini Project! This GUI tool lets you simulate various process 
 5. Round Robin
 
 ## Contributors
-- Anuj Koli(Leader)
+- Anuj Koli
 - Raviraj Parab
 - Rahul Shelke
 - Ayush Devre
