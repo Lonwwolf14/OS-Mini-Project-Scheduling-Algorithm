@@ -14,7 +14,10 @@ Welcome to the OS Mini Project! This GUI tool lets you simulate various process 
 3. Run `python OS-Mini-Project-Scheduling-Algorithm.py`.
 
 ### Input Parameters
-- Enter process details: arrival time, burst time, priority (optional).
+- First, select the process scheduling algorithm.
+- Enter the number of processes.
+- Then, for each process:
+  - Enter arrival time, burst time, and priority (optional).
 - Choose an algorithm and, for Round Robin, specify the quantum.
 
 ### Viewing Results
@@ -29,7 +32,7 @@ Welcome to the OS Mini Project! This GUI tool lets you simulate various process 
 5. Round Robin
 
 ## Contributors
-- Anuj Koli
+- Anuj Koli(Leader)
 - Raviraj Parab
 - Rahul Shelke
 - Ayush Devre
