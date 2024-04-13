@@ -15,15 +15,6 @@ class Process:
         self.priority = priority
 
 def fcfs(processes):
-    """
-    Perform FCFS (First-Come, First-Served) scheduling on the given list of processes.
-
-    Args:
-    - processes: A list of Process objects representing the processes to be scheduled.
-
-    Returns:
-    None. The completion time, turnaround time, and waiting time for each process are updated in-place.
-    """
     time = 0
     for process in processes:
         if process.arrival_time > time:
@@ -33,124 +24,62 @@ def fcfs(processes):
         process.waiting_time = process.turnaround_time - process.burst_time
         time = process.completion_time
 
-def print_results(processes):
-    total_waiting_time = sum(process.waiting_time for process in processes)
-    total_turnaround_time = sum(process.turnaround_time for process in processes)
-    avg_waiting_time = total_waiting_time / len(processes)
-    avg_turnaround_time = total_turnaround_time / len(processes)
-
-    output_text = "Process\tAT\tBT\tCT\tTAT\tWT\n"
-    for process in processes:
-        output_text += f"{process.pid}\t{process.arrival_time}\t{process.burst_time}\t{process.completion_time}\t{process.turnaround_time}\t{process.waiting_time}\n"
-    output_text += f"\nAverage TAT: {avg_turnaround_time:.2f}\n"
-    output_text += f"Average WT: {avg_waiting_time:.2f}\n"
-
-    result_text.delete(1.0, tk.END)  # Clear the existing text
-    result_text.insert(tk.END, output_text)  # Insert new output text
-
-    # Plot Gantt Chart
-    fig, ax = plt.subplots()
-
-    # Initialize colors for each process
-    colors = ['skyblue', 'salmon', 'lightgreen', 'orchid', 'lightcoral', 'lightskyblue', 'palegreen', 'mediumorchid', 'lightpink', 'lightgrey']
-
-    # Setting the y-axis limits
-    ax.set_ylim(0.5, len(processes) + 0.5)
-
-    # Plotting Gantt Chart bars
-    for i, process in enumerate(processes):
-        ax.barh(i + 1, process.completion_time - process.arrival_time, left=process.arrival_time, align='center', color=colors[i % len(colors)])
-        ax.text(process.arrival_time + (process.completion_time - process.arrival_time) / 2, i + 1, f'P{process.pid}', ha='center', va='center', color='black')
-
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Processes')
-    ax.set_title('Gantt Chart')
-    
-    # Hide the y-axis ticks and labels
-    ax.yaxis.set_visible(False)
-
-    plt.grid(True)
-    plt.show()
-
 def sjf(processes):
-    # Sort processes based on arrival time and burst time
     processes.sort(key=lambda x: (x.arrival_time, x.burst_time))
-    time = 0  # Current time
-    remaining_processes = processes.copy()  # Create a copy of processes
+    time = 0
+    remaining_processes = processes.copy()
 
     while remaining_processes:
-        # Filter processes that have arrived by the current time
         arrived_processes = [p for p in remaining_processes if p.arrival_time <= time]
 
-        # If no processes have arrived yet, move time to the arrival time of the next process
         if not arrived_processes:
             time = remaining_processes[0].arrival_time
             continue
 
-        # Select the process with the shortest burst time among the arrived processes
         shortest_process = min(arrived_processes, key=lambda x: x.burst_time)
 
-        # Update time and process details
         time += shortest_process.burst_time
         shortest_process.completion_time = time
         shortest_process.turnaround_time = shortest_process.completion_time - shortest_process.arrival_time
         shortest_process.waiting_time = shortest_process.turnaround_time - shortest_process.burst_time
 
-        # Remove the completed process from the list of remaining processes
         remaining_processes.remove(shortest_process)
-
 
 def srt(processes):
     time = 0
     remaining_processes = processes.copy()
     while remaining_processes:
-        remaining_processes.sort(key=lambda x: (x.arrival_time, x.burst_time))  # STEP 1: Sort by arrival time and burst time
+        remaining_processes.sort(key=lambda x: (x.arrival_time, x.burst_time))
         shortest_process = None
         for process in remaining_processes:
             if process.arrival_time <= time:
                 if shortest_process is None or process.burst_time < shortest_process.burst_time:
                     shortest_process = process
-        if shortest_process is None:  # No process arrived until the current time
+        if shortest_process is None:
             time += 1
             continue
-        shortest_process.remaining_time -= 1  # STEP 2: Process the shortest remaining time process for 1 unit
+        shortest_process.remaining_time -= 1
         time += 1
-        if shortest_process.remaining_time == 0:  # Process completed
+        if shortest_process.remaining_time == 0:
             shortest_process.completion_time = time
             shortest_process.turnaround_time = shortest_process.completion_time - shortest_process.arrival_time
             shortest_process.waiting_time = shortest_process.turnaround_time - shortest_process.burst_time
-            remaining_processes.remove(shortest_process)  # Remove completed process
-
-    return processes
-
-
-def swap(a, b):
-    temp = a
-    a = b
-    b = temp
+            remaining_processes.remove(shortest_process)
 
 def priority(processes):
     n = len(processes)
-    # Sort processes by arrival time and priority
     processes.sort(key=lambda x: (x.arrival_time, x.priority))
-    
-    completion_time = float('inf')  # Initialize completion time to infinity
+    completion_time = float('inf')
 
-    # If all the processes arrive at different times
     if processes:
         for i in range(n):
-            # If current completion time is less than arrival time, update it
             if completion_time < processes[i].arrival_time:
                 completion_time = processes[i].arrival_time
             
-            # Waiting time for the current process
             processes[i].waiting_time = max(0, completion_time - processes[i].arrival_time)
             
-            # Completion time of the current process
             completion_time += processes[i].burst_time
             processes[i].turnaround_time = processes[i].completion_time - processes[i].arrival_time
-
-             # Waiting time for the current process
             processes[i].waiting_time = processes[i].turnaround_time - processes[i].burst_time
 
     return processes
@@ -165,23 +94,18 @@ def round_robin(processes, quantum):
     while remaining_processes:
         for process in remaining_processes:
             if process.remaining_time > 0:
-                # Execute the process for the time quantum or its remaining time
                 execution_time = min(process.remaining_time, quantum)
                 process.remaining_time -= execution_time
                 time += execution_time
 
-                # Check if the process has completed
                 if process.remaining_time == 0:
                     process.completion_time = time
 
-        # Remove completed processes
         remaining_processes = [p for p in remaining_processes if p.remaining_time > 0]
 
-    # Calculate waiting time and turnaround time
     for process in processes:
         process.turnaround_time = process.completion_time - process.arrival_time
         process.waiting_time = process.turnaround_time - process.burst_time
-
 
 def print_results(processes):
     total_waiting_time = sum(process.waiting_time for process in processes)
@@ -215,7 +139,6 @@ def print_results(processes):
 
     plt.grid(True)
     plt.show()
-
 
 
 def update_priority_display():
