@@ -128,18 +128,20 @@ def print_results(processes):
 
     ax.set_ylim(0.5, len(processes) + 0.5)
 
-    for i, process in enumerate(processes):
-        ax.barh(i + 1, process.completion_time - process.arrival_time, left=process.arrival_time, align='center', color=colors[i % len(colors)])
-        ax.text(process.arrival_time + (process.completion_time - process.arrival_time) / 2, i + 1, f'P{process.pid}', ha='center', va='center', color='black')
+    processes.sort(key=lambda x: x.arrival_time)  # Sort processes by arrival time
+
+    current_time = 0
+    for process in processes:
+        ax.hlines(y=process.pid, xmin=current_time, xmax=process.completion_time, color=colors[process.pid % len(colors)], linewidth=5)
+        ax.text((current_time + process.completion_time) / 2, process.pid, f'P{process.pid}', ha='center', va='center', color='black')
+        current_time = process.completion_time
 
     ax.set_xlabel('Time')
     ax.set_ylabel('Processes')
     ax.set_title('Gantt Chart')
-    ax.yaxis.set_visible(False)
 
-    plt.grid(True)
+    plt.grid(True)  
     plt.show()
-
 # Function to export results
 def submit_processes():
     try:
@@ -228,15 +230,15 @@ title_label.grid(row=0, column=0, columnspan=4, padx=10, pady=5)
 
 # Number of processes
 num_processes_label = ttk.Label(input_frame, text="Number of Processes:")
-num_processes_label.grid(row=1, column=0, padx=10, pady=5, sticky="e")
+num_processes_label.grid(row=2, column=0, padx=10, pady=5, sticky="e")
 num_processes_entry = ttk.Entry(input_frame)
-num_processes_entry.grid(row=1, column=1, padx=10, pady=5)
+num_processes_entry.grid(row=2, column=1, padx=10, pady=5)
 
 # Scheduling algorithm
 algorithm_label = ttk.Label(input_frame, text="Scheduling Algorithm:")
-algorithm_label.grid(row=2, column=0, padx=10, pady=5, sticky="e")
+algorithm_label.grid(row=1, column=0, padx=10, pady=5, sticky="e")
 scheduling_algorithm = ttk.Combobox(input_frame, values=["FCFS", "SJF", "SRTN", "Priority", "Round Robin"])
-scheduling_algorithm.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+scheduling_algorithm.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
 # Quantum (for Round Robin)
 quantum_label = ttk.Label(input_frame, text="Quantum (for Round Robin):")
@@ -299,4 +301,3 @@ scrollbar.pack(side=tk.RIGHT, fill="y")
 result_text.config(yscrollcommand=scrollbar.set)
 
 root.mainloop()
-
