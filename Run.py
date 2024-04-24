@@ -15,14 +15,16 @@ class Process:
         self.priority = priority
 
 def fcfs(processes):
+    sorted_processes = sorted(processes, key=lambda x: x.arrival_time)  # Sort processes by arrival time
     time = 0
-    for process in processes:
+    for process in sorted_processes:
         if process.arrival_time > time:
             time = process.arrival_time
         process.completion_time = time + process.burst_time
         process.turnaround_time = process.completion_time - process.arrival_time
         process.waiting_time = process.turnaround_time - process.burst_time
         time = process.completion_time
+
 
 def sjf(processes):
     processes.sort(key=lambda x: (x.arrival_time, x.burst_time))
@@ -66,23 +68,74 @@ def srt(processes):
             shortest_process.waiting_time = shortest_process.turnaround_time - shortest_process.burst_time
             remaining_processes.remove(shortest_process)
 
-def priority(processes):
-    n = len(processes)
-    processes.sort(key=lambda x: (x.arrival_time, x.priority))
-    completion_time = float('inf')
+def priority_python(processes):
+    """
+    Implements the Non-Preemptive Priority Scheduling algorithm for a set of processes.
 
-    if processes:
-        for i in range(n):
-            if completion_time < processes[i].arrival_time:
-                completion_time = processes[i].arrival_time
-            
-            processes[i].waiting_time = max(0, completion_time - processes[i].arrival_time)
-            
-            completion_time += processes[i].burst_time
-            processes[i].turnaround_time = processes[i].completion_time - processes[i].arrival_time
-            processes[i].waiting_time = processes[i].turnaround_time - processes[i].burst_time
+    Args:
+        processes: A list of Process objects representing processes.
+
+    Returns:
+        The modified list of processes, now containing calculated 'turnaround_time',
+        'waiting_time', and 'completion_time' attributes for each process.
+    """
+
+    n = len(processes)
+
+    # Sort processes based on arrival time (primary) and then priority (secondary)
+    processes.sort(key=lambda x: (x.arrival_time, x.priority))
+
+    completion_time = processes[0].arrival_time  # Initialize with first process's arrival
+
+    for i in range(n):
+        # Handle idle CPU time (if any)
+        if completion_time < processes[i].arrival_time:
+            completion_time = processes[i].arrival_time
+
+        # Update completion time, turnaround time, and waiting time
+        completion_time += processes[i].burst_time
+        processes[i].turnaround_time = completion_time - processes[i].arrival_time
+        processes[i].waiting_time = processes[i].turnaround_time - processes[i].burst_time
+        processes[i].completion_time = completion_time
 
     return processes
+
+def priority_preemptive(processes):
+    processes.sort(key=lambda x: (x.arrival_time, x.priority))
+    ready_queue = []
+    time = 0
+    completed_processes = []
+
+    while True:
+        if not ready_queue and not processes:
+            break
+
+        while processes and processes[0].arrival_time <= time:
+            ready_queue.append(processes.pop(0))
+
+        if not ready_queue:
+            time += 1
+            continue
+
+        ready_queue.sort(key=lambda x: x.priority)
+        current_process = ready_queue.pop(0)
+
+        if current_process.remaining_time == current_process.burst_time:
+            current_process.completion_time = time
+
+        current_process.remaining_time -= 1
+
+        if current_process.remaining_time == 0:
+            current_process.turnaround_time = time - current_process.arrival_time + 1
+            current_process.waiting_time = current_process.turnaround_time - current_process.burst_time
+            current_process.completion_time = current_process.arrival_time + current_process.turnaround_time
+            completed_processes.append(current_process)
+        else:
+            ready_queue.append(current_process)
+
+        time += 1
+
+    return completed_processes
 
 def round_robin(processes, quantum):
     if quantum <= 0:
@@ -94,15 +147,19 @@ def round_robin(processes, quantum):
     while remaining_processes:
         for process in remaining_processes:
             if process.remaining_time > 0:
+                # Execute the process for the time quantum or its remaining time
                 execution_time = min(process.remaining_time, quantum)
                 process.remaining_time -= execution_time
                 time += execution_time
 
+                # Check if the process has completed
                 if process.remaining_time == 0:
                     process.completion_time = time
 
+        # Remove completed processes
         remaining_processes = [p for p in remaining_processes if p.remaining_time > 0]
 
+    # Calculate waiting time and turnaround time
     for process in processes:
         process.turnaround_time = process.completion_time - process.arrival_time
         process.waiting_time = process.turnaround_time - process.burst_time
@@ -130,11 +187,9 @@ def print_results(processes):
 
     processes.sort(key=lambda x: x.arrival_time)  # Sort processes by arrival time
 
-    current_time = 0
     for process in processes:
-        ax.hlines(y=process.pid, xmin=current_time, xmax=process.completion_time, color=colors[process.pid % len(colors)], linewidth=5)
-        ax.text((current_time + process.completion_time) / 2, process.pid, f'P{process.pid}', ha='center', va='center', color='black')
-        current_time = process.completion_time
+        ax.hlines(y=process.pid, xmin=process.arrival_time, xmax=process.completion_time, color=colors[process.pid % len(colors)], linewidth=5)
+        ax.text((process.arrival_time + process.completion_time) / 2, process.pid, f'P{process.pid}', ha='center', va='center', color='black')
 
     ax.set_xlabel('Time')
     ax.set_ylabel('Processes')
@@ -142,10 +197,11 @@ def print_results(processes):
 
     plt.grid(True)  
     plt.show()
-# Function to export results
+
+
 def submit_processes():
     try:
-        global processes  # Add this line to access the processes variable globally
+        global processes
         processes = []
         for i in range(int(num_processes_entry.get())):
             pid = i + 1
@@ -161,7 +217,7 @@ def submit_processes():
         elif scheduling_algorithm.get() == "SRTN":
             srt(processes)
         elif scheduling_algorithm.get() == "Priority":
-            priority(processes)
+            processes = priority_preemptive(processes)  # Call priority_preemptive function here
         elif scheduling_algorithm.get() == "Round Robin":
             quantum = int(quantum_entry.get())
             round_robin(processes, quantum)
@@ -284,20 +340,16 @@ num_processes_entry.bind("<FocusOut>", lambda _: update_process_entries())
 
 # Submit and Clear buttons
 submit_button = ttk.Button(input_frame, text="Submit", command=submit_processes)
-submit_button.grid(row=1, column=3, padx=10, pady=5, sticky="e")
+submit_button.grid(row=1, column=3, padx=10, pady=5, sticky="w")
 clear_button = ttk.Button(input_frame, text="Clear", command=clear_inputs)
-clear_button.grid(row=2, column=3, padx=10, pady=5, sticky="e")
+clear_button.grid(row=2, column=3, padx=10, pady=5, sticky="w")
 
-# Add an "Export" button to the GUI
-export_button = ttk.Button(input_frame, text="Export", command=export_results)
-export_button.grid(row=3, column=3, padx=10, pady=5, sticky="e")
-# Result display
-result_text = tk.Text(output_frame, wrap=tk.WORD, height=20, width=70)
-result_text.pack(side=tk.BOTTOM, padx=10, pady=10, fill=tk.BOTH, expand=True)
+# Result text area
+result_text = tk.Text(output_frame, height=15, width=100)
+result_text.pack(padx=10, pady=10)
 
-# Scrollbar for result display
-scrollbar = ttk.Scrollbar(output_frame, orient="vertical", command=result_text.yview)
-scrollbar.pack(side=tk.RIGHT, fill="y")
-result_text.config(yscrollcommand=scrollbar.set)
+# Export button
+export_button = ttk.Button(output_frame, text="Export Results", command=export_results)
+export_button.pack(pady=5)
 
 root.mainloop()
